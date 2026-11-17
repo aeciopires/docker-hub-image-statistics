@@ -1,0 +1,27 @@
+apiVersion: v2
+name: docker-hub-image-statistics
+description: Collects and displays pull statistics (total, 1d, 7d, 30d and hourly) of public Docker Hub images, with Prometheus metrics, OpenTelemetry traces and JSON logs.
+type: application
+# version and appVersion are synchronized from the repository VERSION file (make version-sync).
+version: 1.0.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.30.0-0"
+home: https://github.com/aeciopires/docker-hub-image-statistics
+sources:
+  - https://github.com/aeciopires/docker-hub-image-statistics
+icon: https://raw.githubusercontent.com/aeciopires/docker-hub-image-statistics/main/internal/web/static/favicon.svg
+keywords:
+  - docker
+  - docker-hub
+  - statistics
+  - prometheus
+  - grafana
+  - opentelemetry
+maintainers:
+  - name: Aecio Pires
+    url: https://github.com/aeciopires
+annotations:
+  # This chart requires Helm 4 (it fails to render with Helm 3).
+  helm.sh/minimum-version: "4.0.0"
+  category: Monitoring
+  licenses: GPL-3.0-only

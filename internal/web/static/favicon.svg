@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Docker Hub Image Statistics</title>
+  <rect width="64" height="64" rx="16" fill="#4F378B"/>
+  <rect x="12" y="34" width="8" height="18" rx="2" fill="#EADDFF"/>
+  <rect x="24" y="24" width="8" height="28" rx="2" fill="#D0BCFF"/>
+  <rect x="36" y="16" width="8" height="36" rx="2" fill="#EADDFF"/>
+  <rect x="48" y="28" width="6" height="24" rx="2" fill="#EFB8C8"/>
+  <path d="M10 22 L26 14 L38 10 L54 16" stroke="#EFB8C8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -424,3 +424,17 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+## docker-hub-image-statistics
+/bin/
+/dist/
+/data/
+/.tmp/
+coverage.out
+*.db
+*.db-shm
+*.db-wal
+*.tmp
+# Local configuration (copy config.example.yaml); may contain credentials.
+/config.yaml
+.env

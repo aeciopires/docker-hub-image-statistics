@@ -1,0 +1,6 @@
+# Local Kubernetes cluster for testing the Helm chart: make kind-create
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.37.0

@@ -1,0 +1,7 @@
+# Accepted findings. Each entry needs a justification.
+misconfigurations:
+  - id: KSV-0125
+    statement: >-
+      "Untrusted registry" is an organization-specific policy. The image is
+      published on Docker Hub (docker.io); users can mirror it and set
+      image.registry to their trusted registry.

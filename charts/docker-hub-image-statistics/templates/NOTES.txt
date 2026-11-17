@@ -1,0 +1,27 @@
+Docker Hub Image Statistics {{ .Chart.AppVersion }} has been deployed.
+
+Tracked namespaces:   {{ .Values.config.dockerhub.namespaces | join ", " | default "(none)" }}
+Tracked repositories: {{ .Values.config.dockerhub.repositories | join ", " | default "(none)" }}
+Collection interval:  {{ .Values.config.collector.interval }}
+
+Open the web UI:
+{{- if .Values.httpRoute.enabled }}
+  {{- range .Values.httpRoute.hostnames }}
+  https://{{ . }}/
+  {{- end }}
+{{- else if .Values.ingress.enabled }}
+  {{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}/
+  {{- end }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "dhis.fullname" . }} 8080:{{ .Values.service.port }}
+  then browse http://localhost:8080
+{{- end }}
+
+Endpoints: /healthz (liveness), /readyz (readiness), /metrics (Prometheus), /api/v1/images (JSON API).
+{{- if not (or .Values.dockerhub.token .Values.dockerhub.existingSecret) }}
+
+NOTE: running anonymously. Docker Hub only lists the first 100 repositories of a
+namespace to anonymous clients and limits API calls to 180/min per IP. Set
+dockerhub.existingSecret (keys: username, token) to lift those limits.
+{{- end }}

@@ -1,0 +1,302 @@
+# Default values for docker-hub-image-statistics.
+# Documentation is generated from the "# --" comments with helm-docs (make helm-docs).
+
+# -- Override the chart name.
+nameOverride: ""
+# -- Override the full resource name.
+fullnameOverride: ""
+# -- Labels added to every resource.
+commonLabels: {}
+
+image:
+  # -- Image registry.
+  registry: docker.io
+  # -- Image repository.
+  repository: aeciopires/docker-hub-image-statistics
+  # -- Image tag (defaults to the chart appVersion).
+  tag: ""
+  # -- Image digest (sha256:...). When set it takes precedence over the tag (recommended for production).
+  digest: ""
+  # -- Image pull policy.
+  pullPolicy: IfNotPresent
+
+# -- Secrets used to pull the image from a private registry.
+imagePullSecrets: []
+
+# -- Number of replicas. The SQLite cache is a single-writer store: keep 1 unless persistence is disabled.
+replicaCount: 1
+
+# -- Revision history kept for rollbacks.
+revisionHistoryLimit: 3
+
+# -- Application configuration rendered into config.yaml (see docs/configuration.md).
+# Storage paths must live under /data, the only writable volume.
+# @default -- see values.yaml
+config:
+  server:
+    address: ":8080"
+    read_timeout: 10s
+    write_timeout: 30s
+    idle_timeout: 120s
+    shutdown_timeout: 15s
+  log:
+    # -- Log level: debug, info, warn or error.
+    level: info
+    format: json
+  dockerhub:
+    base_url: https://hub.docker.com
+    # -- Users/organizations whose public images are discovered.
+    namespaces:
+      - library
+    # -- Explicit images ("namespace/name", or "name" for official images).
+    repositories: []
+    include: []
+    exclude: []
+    timeout: 30s
+    page_size: 100
+    max_retries: 3
+    # -- API requests per minute (0 = automatic: 60 anonymous, 150 authenticated; anonymous max 180).
+    requests_per_minute: 0
+  collector:
+    # -- Polling interval (minimum 5m anonymous, 1m authenticated).
+    interval: 1h
+    run_on_start: true
+  cache:
+    sqlite:
+      enabled: true
+      path: /data/statistics.db
+    disk:
+      enabled: true
+      path: /data/statistics.json
+    memory:
+      enabled: true
+    # -- History retention (at least 744h to compute 30d pulls).
+    retention: 2160h
+  telemetry:
+    service_name: docker-hub-image-statistics
+    # -- OTLP/HTTP endpoint, e.g. http://otel-collector.observability:4318.
+    otlp_endpoint: ""
+    traces: false
+    logs: false
+    sample_ratio: 1
+
+dockerhub:
+  # -- Docker Hub username (optional; raises API rate limits and lifts the 100-repositories anonymous listing limit).
+  username: ""
+  # -- Docker Hub personal access token (read-only scope is enough). Prefer existingSecret.
+  token: ""
+  # -- Existing Secret with the keys "username" and "token" (takes precedence over username/token).
+  existingSecret: ""
+
+# -- Extra environment variables (DHIS_* override config). Values are rendered with tpl.
+extraEnv: []
+# -- Extra envFrom sources.
+extraEnvFrom: []
+
+serviceAccount:
+  # -- Create a dedicated ServiceAccount.
+  create: true
+  # -- ServiceAccount name (generated when empty).
+  name: ""
+  # -- ServiceAccount annotations.
+  annotations: {}
+  # -- Mount the API token. The application never talks to the Kubernetes API.
+  automountServiceAccountToken: false
+
+# -- Pod annotations.
+podAnnotations: {}
+# -- Pod labels.
+podLabels: {}
+
+# -- Pod security context (restricted Pod Security Standard).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context (restricted Pod Security Standard).
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  privileged: false
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+service:
+  # -- Service type.
+  type: ClusterIP
+  # -- Service port.
+  port: 8080
+  # -- Service annotations.
+  annotations: {}
+
+ingress:
+  # -- Create an Ingress.
+  enabled: false
+  # -- IngressClass name.
+  className: ""
+  # -- Ingress annotations.
+  annotations: {}
+  # -- Ingress hosts.
+  hosts:
+    - host: dhis.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # -- Ingress TLS.
+  tls: []
+
+# -- Gateway API HTTPRoute (gateway.networking.k8s.io/v1). For other Gateway API kinds use extraObjects.
+httpRoute:
+  # -- Create an HTTPRoute.
+  enabled: false
+  # -- HTTPRoute annotations.
+  annotations: {}
+  # -- Gateways this route attaches to.
+  parentRefs:
+    - name: gateway
+      namespace: gateway-system
+      sectionName: https
+  # -- Hostnames.
+  hostnames:
+    - dhis.example.com
+  # -- Route rules. The backend is added automatically when backendRefs is empty.
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
+# -- Liveness probe.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+# -- Readiness probe (checks the cache tiers).
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+# -- Startup probe.
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 2
+  failureThreshold: 30
+
+# -- Resource requests and limits.
+resources:
+  requests:
+    cpu: 25m
+    memory: 48Mi
+  limits:
+    memory: 256Mi
+
+persistence:
+  # -- Persist the SQLite/disk cache. When disabled an emptyDir is used (history is lost on restart).
+  enabled: true
+  # -- Use an existing PersistentVolumeClaim.
+  existingClaim: ""
+  # -- StorageClass (empty uses the cluster default).
+  storageClass: ""
+  # -- Access modes.
+  accessModes:
+    - ReadWriteOnce
+  # -- Volume size.
+  size: 1Gi
+  # -- PVC annotations.
+  annotations: {}
+
+# -- Size limit of the /tmp emptyDir.
+tmpSizeLimit: 16Mi
+
+# -- Node selector.
+nodeSelector: {}
+# -- Tolerations.
+tolerations: []
+# -- Affinity.
+affinity: {}
+# -- Topology spread constraints.
+topologySpreadConstraints: []
+# -- PriorityClass name.
+priorityClassName: ""
+# -- Termination grace period (must exceed config.server.shutdown_timeout).
+terminationGracePeriodSeconds: 30
+
+# -- Extra volumes.
+extraVolumes: []
+# -- Extra volume mounts.
+extraVolumeMounts: []
+
+networkPolicy:
+  # -- Create a NetworkPolicy (default deny except the rules below).
+  enabled: true
+  # -- Ingress peers allowed to reach the HTTP port (empty = any).
+  ingressFrom: []
+  # -- Allow DNS egress (UDP/TCP 53).
+  allowDNS: true
+  # -- Allow HTTPS egress to Docker Hub (TCP 443 to any address, since Docker Hub has no fixed IPs).
+  allowDockerHub: true
+  # -- Extra egress rules (for example to the OpenTelemetry Collector).
+  extraEgress: []
+
+serviceMonitor:
+  # -- Create a Prometheus Operator ServiceMonitor.
+  enabled: false
+  # -- Scrape interval.
+  interval: 60s
+  # -- Scrape timeout.
+  scrapeTimeout: 10s
+  # -- Extra labels (for example to match the Prometheus selector).
+  labels: {}
+  # -- Metric relabelings.
+  metricRelabelings: []
+  # -- Relabelings.
+  relabelings: []
+
+grafanaDashboards:
+  # -- Create ConfigMaps with the Grafana dashboards (picked up by the Grafana sidecar).
+  enabled: false
+  # -- Label the Grafana sidecar watches.
+  labels:
+    grafana_dashboard: "1"
+  # -- Annotations (for example grafana_folder).
+  annotations:
+    grafana_folder: Docker Hub Image Statistics
+
+tests:
+  # -- Enable "helm test" (uses the application image itself, no shell needed).
+  enabled: true
+
+# -- Extra Kubernetes objects rendered with tpl (strings or maps). Useful for Gateway API
+# resources (GRPCRoute, ReferenceGrant, BackendTLSPolicy...), ExternalSecrets, PodMonitors, etc.
+extraObjects: []
+# extraObjects:
+#   - apiVersion: gateway.networking.k8s.io/v1
+#     kind: HTTPRoute
+#     metadata:
+#       name: "{{ include \"dhis.fullname\" . }}-public"
+#     spec:
+#       parentRefs: [{name: public-gateway, namespace: gateway-system}]
+#       hostnames: [stats.example.com]
+#       rules:
+#         - backendRefs:
+#             - name: "{{ include \"dhis.fullname\" . }}"
+#               port: 8080

@@ -1,0 +1,51 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - errorlint
+    - gocritic
+    - gosec
+    - intrange
+    - misspell
+    - modernize
+    - nilerr
+    - noctx
+    - perfsprint
+    - revive
+    - unconvert
+    - usestdlibvars
+    - wastedassign
+  settings:
+    gosec:
+      excludes:
+        - G104 # unhandled errors are covered by errcheck
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: var-naming
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      # Tests may ignore errors from setup helpers and use dynamic URLs.
+      - path: _test\.go
+        linters: [errcheck, gosec, noctx, bodyclose, perfsprint]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/aeciopires/docker-hub-image-statistics

@@ -1,0 +1,58 @@
+apiVersion: 1
+
+# Remove the Jaeger data source created by earlier versions of this stack.
+deleteDatasources:
+  - name: Jaeger
+    orgId: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 30s
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      # Logs -> traces: the app writes trace_id in every record.
+      derivedFields:
+        - name: TraceID
+          matcherType: label
+          matcherRegex: trace_id
+          datasourceUid: tempo
+          url: "$${__value.raw}"
+          urlDisplayLabel: View trace
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        filterByTraceID: true
+        customQuery: true
+        query: '{service_name="$${__span.tags["service.name"]}"} | trace_id="$${__trace.traceId}"'
+      tracesToMetrics:
+        datasourceUid: prometheus
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: loki
+
+# Jaeger is intentionally not provisioned: Jaeger v2.23+ removed the legacy
+# HTTP API (/api/services, /api/traces) that the Grafana Jaeger data source
+# still uses. Traces are sent to both Tempo and Jaeger by the OTel Collector;
+# explore them in Grafana through Tempo, or in the Jaeger UI (localhost:16686).

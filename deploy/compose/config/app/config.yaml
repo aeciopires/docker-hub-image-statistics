@@ -1,0 +1,27 @@
+# Configuration used by docker compose. Environment variables (DHIS_*) win
+# over this file. See docs/configuration.md for every option.
+server:
+  address: ":8080"
+log:
+  level: info
+  format: json
+dockerhub:
+  # Users or organizations whose public images are discovered automatically.
+  namespaces:
+    - aeciopires
+  # Explicit images ("namespace/name", or "name" for official images).
+  repositories:
+    - grafana/grafana
+    - prom/prometheus
+  exclude: []
+collector:
+  interval: 1h
+  run_on_start: true
+cache:
+  sqlite: {enabled: true, path: /data/statistics.db}
+  disk: {enabled: true, path: /data/statistics.json}
+  memory: {enabled: true}
+  retention: 2160h # 90 days
+telemetry:
+  service_name: docker-hub-image-statistics
+  sample_ratio: 1

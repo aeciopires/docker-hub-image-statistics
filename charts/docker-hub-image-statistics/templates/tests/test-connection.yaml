@@ -1,0 +1,32 @@
+{{- if .Values.tests.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "dhis.fullname" . }}-test
+  labels:
+    {{- include "dhis.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    {{- toYaml .Values.podSecurityContext | nindent 4 }}
+  containers:
+    - name: healthcheck
+      image: {{ include "dhis.image" . | quote }}
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      args:
+        - healthcheck
+        - --url
+        - {{ printf "http://%s:%v/readyz" (include "dhis.fullname" .) .Values.service.port | quote }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      resources:
+        limits:
+          memory: 32Mi
+        requests:
+          cpu: 10m
+          memory: 16Mi
+{{- end }}

@@ -1,0 +1,117 @@
+# Observability stack: OpenTelemetry Collector, Prometheus, Loki, Tempo,
+# Jaeger and Grafana. Used together with compose.yaml:
+#   docker compose -f compose.yaml -f compose.observability.yaml up -d
+#
+# Data flow:
+#   app --OTLP traces--> otel-collector --> tempo + jaeger
+#   app --OTLP logs----> otel-collector --> loki
+#   prometheus --scrape--> app /metrics, otel-collector, loki, tempo, jaeger
+#   grafana --> prometheus, loki, tempo, jaeger (provisioned datasources + dashboards)
+
+services:
+  app:
+    environment:
+      DHIS_TELEMETRY_TRACES: "true"
+      DHIS_TELEMETRY_LOGS: "true"
+      DHIS_TELEMETRY_OTLP_ENDPOINT: http://otel-collector:4318
+    depends_on:
+      otel-collector:
+        condition: service_started
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:${OTEL_COLLECTOR_VERSION:-0.165.0}
+    container_name: dhis-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"   # OTLP gRPC
+      - "127.0.0.1:4318:4318"   # OTLP HTTP
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on: [loki, tempo, jaeger]
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-v3.16.0}
+    container_name: dhis-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  loki:
+    image: grafana/loki:${LOKI_VERSION:-3.7.10}
+    container_name: dhis-loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./config/loki/config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  tempo:
+    image: grafana/tempo:${TEMPO_VERSION:-3.1.1}
+    container_name: dhis-tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/config.yaml"]
+    volumes:
+      - ./config/tempo/config.yaml:/etc/tempo/config.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  jaeger:
+    image: jaegertracing/jaeger:${JAEGER_VERSION:-2.23.0}
+    container_name: dhis-jaeger
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16686:16686" # UI
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-13.3.1}
+    container_name: dhis-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/docker-hub-image-statistics.json
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../charts/docker-hub-image-statistics/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on: [prometheus, loki, tempo, jaeger]
+
+volumes:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:

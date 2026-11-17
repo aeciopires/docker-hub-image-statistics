@@ -1,0 +1,107 @@
+# {{ template "chart.name" . }}
+
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+{{ template "chart.description" . }}
+
+<!-- TOC -->
+- [Requirements](#requirements)
+- [Installing](#installing)
+- [Exposing the service](#exposing-the-service)
+  - [Gateway API (HTTPRoute)](#gateway-api-httproute)
+  - [Other resources with extraObjects](#other-resources-with-extraobjects)
+- [Docker Hub credentials](#docker-hub-credentials)
+- [Observability](#observability)
+- [Security](#security)
+- [Testing](#testing)
+- [Values](#values)
+<!-- TOC -->
+
+## Requirements
+
+- **Helm 4** (`>= 4.0.0`). The chart refuses to render with Helm 3.
+- Kubernetes {{ template "chart.kubeVersion" . }}.
+
+## Installing
+
+```bash
+helm upgrade --install dhis ./charts/docker-hub-image-statistics \
+  --namespace dhis --create-namespace \
+  --set 'config.dockerhub.namespaces={myorg}'
+```
+
+Open the UI with `kubectl -n dhis port-forward svc/dhis-docker-hub-image-statistics 8080:8080`.
+
+## Exposing the service
+
+Use `ingress.*` for an Ingress controller, or the Gateway API.
+
+### Gateway API (HTTPRoute)
+
+```yaml
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: public-gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames: [stats.example.com]
+```
+
+### Other resources with extraObjects
+
+`extraObjects` renders any manifest (map or string) through `tpl`, so it can
+reference release values. Use it for `GRPCRoute`, `ReferenceGrant`,
+`BackendTLSPolicy`, `ExternalSecret`, `PodMonitor`, etc.
+
+```yaml
+extraObjects:
+  - apiVersion: gateway.networking.k8s.io/v1
+    kind: ReferenceGrant
+    metadata:
+      name: "{{ "{{" }} include \"dhis.fullname\" . {{ "}}" }}-from-gateway"
+    spec:
+      from: [{group: gateway.networking.k8s.io, kind: HTTPRoute, namespace: gateway-system}]
+      to: [{group: "", kind: Service}]
+```
+
+## Docker Hub credentials
+
+Anonymous clients may call the Docker Hub API 180 times per minute (per IP) and
+only see the first 100 repositories of a namespace. Create a read-only personal
+access token and reference it:
+
+```bash
+kubectl -n dhis create secret generic dhis-dockerhub \
+  --from-literal=username=<user> --from-literal=token=<personal-access-token>
+helm upgrade --install dhis ./charts/docker-hub-image-statistics -n dhis \
+  --set dockerhub.existingSecret=dhis-dockerhub
+```
+
+## Observability
+
+- `serviceMonitor.enabled=true` creates a Prometheus Operator `ServiceMonitor`.
+- `grafanaDashboards.enabled=true` ships the dashboards as ConfigMaps for the Grafana sidecar.
+- `config.telemetry.*` exports traces and logs over OTLP/HTTP (remember `networkPolicy.extraEgress`).
+
+## Security
+
+The defaults follow the Kubernetes *restricted* Pod Security Standard: non-root
+UID 65532, read-only root filesystem, all capabilities dropped,
+`seccompProfile: RuntimeDefault`, no service account token, a NetworkPolicy
+allowing only HTTP ingress plus DNS/HTTPS egress, and a distroless image. Prefer
+`image.digest` in production.
+
+## Testing
+
+```bash
+helm test dhis -n dhis   # runs the image's own "healthcheck" command against /readyz
+```
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+## Values
+
+{{ template "chart.valuesTable" . }}

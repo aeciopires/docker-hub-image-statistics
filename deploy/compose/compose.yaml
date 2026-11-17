@@ -1,0 +1,49 @@
+# Application only. Start with: make up   (stop: make down)
+# Full observability stack:     make stack-up (stop: make stack-down)
+name: dhis
+
+services:
+  app:
+    image: ${IMAGE:-aeciopires/docker-hub-image-statistics}:${TAG:-latest}
+    build:
+      context: ../..
+      args:
+        VERSION: ${TAG:-dev}
+        COMMIT: ${COMMIT:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    container_name: dhis-app
+    restart: unless-stopped
+    command: ["serve", "--config", "/etc/dhis/config.yaml"]
+    environment:
+      DHIS_LOG_LEVEL: ${DHIS_LOG_LEVEL:-info}
+      # Optional credentials (raise Docker Hub API limits). Never commit them.
+      DHIS_DOCKERHUB_USERNAME: ${DHIS_DOCKERHUB_USERNAME:-}
+      DHIS_DOCKERHUB_TOKEN: ${DHIS_DOCKERHUB_TOKEN:-}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    volumes:
+      # Mount the directory (not the single file): editors replace files with a
+      # new inode, and a single-file bind mount would keep showing the old one.
+      # After editing config.yaml run "make compose-reload" (SIGHUP, no restart).
+      - ./config/app:/etc/dhis:ro
+      - app-data:/data
+    # Hardening: non-root (image default), read-only root FS, no capabilities.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/docker-hub-image-statistics", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+volumes:
+  app-data:

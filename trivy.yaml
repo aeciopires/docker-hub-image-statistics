@@ -1,0 +1,13 @@
+# Trivy configuration used by "make docker-scan" and "make scan-fs".
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+scan:
+  scanners:
+    - vuln
+    - secret
+    - misconfig
+vulnerability:
+  ignore-unfixed: false
+exit-code: 1

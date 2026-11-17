@@ -1,0 +1,21 @@
+# Values used by "make helm-install" and "make helm-reload" on the kind cluster.
+# Edit the config section and run "make helm-reload" to apply it.
+image:
+  # The image is loaded into kind by "make kind-load" (no registry needed).
+  pullPolicy: IfNotPresent
+
+config:
+  log:
+    level: info
+  dockerhub:
+    namespaces: []
+    repositories:
+      - nginx
+      - grafana/grafana
+      - prom/prometheus
+  collector:
+    interval: 1h
+
+persistence:
+  enabled: true
+  size: 256Mi
