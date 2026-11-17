@@ -8,20 +8,22 @@ OpenTelemetry traces and JSON logs.
 ![Web UI in dark mode](docs/images/ui-dark.png)
 
 <!-- TOC -->
-- [Features](#features)
-- [Quick start](#quick-start)
-  - [Docker](#docker)
-  - [Docker Compose with the observability stack](#docker-compose-with-the-observability-stack)
-  - [Kubernetes (Helm 4)](#kubernetes-helm-4)
-  - [From source](#from-source)
-- [Configuration](#configuration)
-- [How it works](#how-it-works)
-- [Endpoints](#endpoints)
-- [Screenshots](#screenshots)
-- [Documentation](#documentation)
-- [Development](#development)
-- [References](#references)
-- [License](#license)
+- [docker-hub-image-statistics](#docker-hub-image-statistics)
+  - [Features](#features)
+  - [Quick start](#quick-start)
+    - [Docker](#docker)
+    - [Docker Compose with the observability stack](#docker-compose-with-the-observability-stack)
+    - [Kubernetes (Helm 4)](#kubernetes-helm-4)
+    - [From source](#from-source)
+  - [Configuration](#configuration)
+  - [How it works](#how-it-works)
+  - [Endpoints](#endpoints)
+  - [Screenshots](#screenshots)
+  - [Documentation](#documentation)
+  - [Development](#development)
+  - [References](#references)
+  - [Developer](#developer)
+  - [License](#license)
 <!-- TOC -->
 
 ## Features
@@ -201,6 +203,10 @@ make kind-up       # local Kubernetes: kind cluster + image + Helm chart
 - [Docker Hub API](https://docs.docker.com/reference/api/hub/latest/) and
   [usage and rate limits](https://docs.docker.com/docker-hub/usage/).
 - [Material Design 3](https://m3.material.io/).
+
+## Developer
+
+- Aecio Pires - [https://linktree/aeciopires](https://linktr.ee/aeciopires)
 
 ## License
 
